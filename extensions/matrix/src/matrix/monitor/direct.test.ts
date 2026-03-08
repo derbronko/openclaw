@@ -104,7 +104,7 @@ describe("createDirectRoomTracker", () => {
   // ========================================
 
   describe("Conservative fallback for broken DM flags", () => {
-    it.skip("classifies 2-member room with no room name (M_NOT_FOUND) as DM", async () => {
+    it("classifies 2-member room with no room name (M_NOT_FOUND) as DM", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: false,
@@ -128,7 +128,7 @@ describe("createDirectRoomTracker", () => {
       expect(client.getRoomStateEvent).toHaveBeenCalledWith("!room:example.org", "m.room.name", "");
     });
 
-    it.skip("classifies 2-member room with non-empty room name as group", async () => {
+    it("classifies 2-member room with non-empty room name as group", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: false,
@@ -150,7 +150,7 @@ describe("createDirectRoomTracker", () => {
       expect(client.getRoomStateEvent).toHaveBeenCalledWith("!room:example.org", "m.room.name", "");
     });
 
-    it.skip("classifies 2-member room with whitespace-only room name as DM", async () => {
+    it("classifies 2-member room with whitespace-only room name as DM", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: false,
@@ -172,7 +172,7 @@ describe("createDirectRoomTracker", () => {
       expect(client.getRoomStateEvent).toHaveBeenCalledWith("!room:example.org", "m.room.name", "");
     });
 
-    it.skip("conservatively classifies 2-member room as group on network error", async () => {
+    it("conservatively classifies 2-member room as group on network error", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: false,
@@ -227,7 +227,7 @@ describe("createDirectRoomTracker", () => {
   // ========================================
 
   describe("Priority ordering", () => {
-    it.skip("m.direct wins over is_direct flag", async () => {
+    it("m.direct wins over is_direct flag", async () => {
       const client = createMockClient({
         isDm: true,
         senderDirect: false, // conflicting signal
@@ -252,7 +252,7 @@ describe("createDirectRoomTracker", () => {
       );
     });
 
-    it.skip("m.direct wins over fallback logic", async () => {
+    it("m.direct wins over fallback logic", async () => {
       const client = createMockClient({
         isDm: true,
         senderDirect: false,
@@ -278,7 +278,7 @@ describe("createDirectRoomTracker", () => {
       );
     });
 
-    it.skip("is_direct flag wins over fallback logic", async () => {
+    it("is_direct flag wins over fallback logic", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: true,
@@ -304,7 +304,7 @@ describe("createDirectRoomTracker", () => {
       );
     });
 
-    it.skip("fallback only runs when both m.direct and is_direct are false", async () => {
+    it("fallback only runs when both m.direct and is_direct are false", async () => {
       const client = createMockClient({
         isDm: false,
         senderDirect: false,
