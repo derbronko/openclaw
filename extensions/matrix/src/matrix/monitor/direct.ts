@@ -121,31 +121,20 @@ export function createDirectRoomTracker(client: MatrixClient, opts: DirectRoomTr
       }
 
       // Conservative fallback for broken DM flags
-      // Only apply fallback when BOTH flags are truly missing (not explicitly false)
-      const senderFlagState = await getDirectFlagState(roomId, senderId);
-      const selfFlagState = await getDirectFlagState(roomId, selfUserId ?? "");
-
-      const areFlagsMissing = senderFlagState === "missing" && selfFlagState === "missing";
-      if (!areFlagsMissing) {
-        log(`matrix: dm check room=${roomId} result=group (flags present)`);
-        return false;
-      }
-
-      // Both flags are missing - apply conservative fallback
-      // 2 members + no room name → likely a DM
-      const memberCount = await resolveMemberCount(roomId);
-
-      if (memberCount !== 2) {
-        log(`matrix: dm check room=${roomId} result=group members=${memberCount ?? "unknown"}`);
-        return false;
-      }
-
-      // 2-member room: check if it has a room name
+      // Try to get room name state first to determine if fallback applies
       try {
         const roomNameState = await client.getRoomStateEvent(roomId, "m.room.name", "");
 
-        // If state event exists, check if it has a name field
         if ("name" in roomNameState) {
+          // Room has explicit name configuration - apply optimized fallback logic
+          // Check member count first for efficiency
+          const memberCount = await resolveMemberCount(roomId);
+
+          if (memberCount !== 2) {
+            log(`matrix: dm check room=${roomId} result=group members=${memberCount ?? "unknown"}`);
+            return false;
+          }
+
           const roomName = roomNameState.name;
           if (roomName && roomName.trim()) {
             // Has non-empty room name → group
@@ -161,14 +150,26 @@ export function createDirectRoomTracker(client: MatrixClient, opts: DirectRoomTr
             return true;
           }
         } else {
-          // State event exists but has no name field → treat as group (explicit choice to have no name)
-          log(`matrix: dm check room=${roomId} result=group members=${memberCount} name=undefined`);
+          // Room name state exists but has no name field → old behavior (no fallback)
+          log(`matrix: dm check room=${roomId} result=group (no explicit name field)`);
           return false;
         }
       } catch (err) {
+        // Room name state access failed - apply fallback with member count check
+        const memberCount = await resolveMemberCount(roomId);
+
+        if (memberCount !== 2) {
+          log(
+            `matrix: dm check room=${roomId} result=group members=${memberCount ?? "unknown"} name=${isMatrixNotFoundError(err) ? "missing" : "error"}`,
+          );
+          return false;
+        }
+
         if (isMatrixNotFoundError(err)) {
-          // No room name state event → DM
-          log(`matrix: dm detected via fallback room=${roomId} members=${memberCount} name=none`);
+          // Room name state missing - apply fallback: 2 members + no name → DM
+          log(
+            `matrix: dm detected via fallback room=${roomId} members=${memberCount} name=missing`,
+          );
           return true;
         } else {
           // Network/auth error → conservative → group
